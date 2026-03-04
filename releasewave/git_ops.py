@@ -363,7 +363,6 @@ def _get_file_diff(repo_path: Path, ref_from: str, ref_to: str, path: str, max_s
         stdout_data = proc.stdout.read(max_size)
         
         proc.stdout.close()
-        proc.stderr.close()
         proc.terminate()
         proc.wait(timeout=2)
         
