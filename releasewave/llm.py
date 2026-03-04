@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import json
 import time
+import asyncio
+import hashlib
+from pathlib import Path
 from typing import Any, Optional
 
-from litellm import completion
+from litellm import completion, acompletion
 from rich.console import Console
 from rich.status import Status
 
@@ -50,18 +53,20 @@ def call_llm(
     description: str = "Processing",
     response_model: Optional[type] = None,
 ) -> Any:
+    """Wrapper to run async_call_llm synchronously."""
+    return asyncio.run(
+        async_call_llm(messages, config, json_mode, description, response_model)
+    )
+
+async def async_call_llm(
+    messages: list[dict[str, str]],
+    config: ReleaseWaveConfig,
+    json_mode: bool = False,
+    description: str = "Processing",
+    response_model: Optional[type] = None,
+) -> Any:
     """
-    Make a single LLM call with retry logic and error handling.
-
-    Args:
-        messages: Chat messages in OpenAI format
-        config: ReleaseWave configuration
-        json_mode: Whether to request JSON response format
-        description: Human-readable description for status display
-        response_model: Optional Pydantic model for structured output via instructor
-
-    Returns:
-        The LLM response text or parsed Pydantic model
+    Make a single LLM call asynchronously with retry logic and error handling.
     """
     kwargs: dict[str, Any] = {
         "model": config.llm.model,
@@ -70,7 +75,6 @@ def call_llm(
         "timeout": config.llm.timeout,
     }
 
-    # Set API key if provided
     if config.llm.api_key:
         kwargs["api_key"] = config.llm.api_key
     if config.llm.api_base:
@@ -86,15 +90,14 @@ def call_llm(
         try:
             if response_model:
                 import instructor
-                from litellm import completion as litellm_completion
                 # Use Instructor to guarantee structured Pydantic output
-                client = instructor.from_litellm(litellm_completion)
-                return client.chat.completions.create(
+                client = instructor.from_litellm(acompletion)
+                return await client.chat.completions.create(
                     response_model=response_model,
                     **kwargs
                 )
             else:
-                response = completion(**kwargs)
+                response = await acompletion(**kwargs)
                 content = response.choices[0].message.content
                 if content:
                     return content.strip()
@@ -108,7 +111,7 @@ def call_llm(
                     f"  [yellow]⚠ Attempt {attempt}/{config.llm.max_retries} failed: {e}[/yellow]"
                 )
                 console.print(f"  [dim]Retrying in {wait_time}s...[/dim]")
-                time.sleep(wait_time)
+                await asyncio.sleep(wait_time)
             else:
                 console.print(
                     f"  [red]✗ All {config.llm.max_retries} attempts failed[/red]"
@@ -230,31 +233,60 @@ def _analyze_single_chunk(chunk, commit_log: str, config: ReleaseWaveConfig) -> 
     return analysis
 
 
+def _get_cache_path(content: str) -> Path:
+    h = hashlib.sha256(content.encode('utf-8')).hexdigest()
+    p = Path(".rwave/cache")
+    p.mkdir(parents=True, exist_ok=True)
+    return p / f"chunk_{h}.json"
+
+async def _process_chunk_async(i: int, total: int, chunk, commit_log: str, config: ReleaseWaveConfig) -> AnalysisResult:
+    diff_content = format_chunk_for_llm(chunk)
+    messages = build_analysis_prompt(
+        diff_content=diff_content,
+        commit_log=commit_log,
+        project_context=config.project_context,
+        custom_prompt=config.custom_prompt,
+    )
+    
+    # Check cache
+    cache_key = json.dumps(messages)
+    cache_path = _get_cache_path(cache_key)
+    
+    if cache_path.exists():
+        try:
+            data = json.loads(cache_path.read_text(encoding="utf-8"))
+            console.print(f"  [dim]⚡ Loaded chunk {i}/{total} from cache ({cache_path.name})[/dim]")
+            return AnalysisResult(**data)
+        except Exception as ex:
+            console.print(f"  [dim]⚠ Cache read failed for chunk {i}: {ex}[/dim]")
+    else:
+        console.print(f"  [dim]Processing chunk {i}/{total} asynchronously...[/dim]")
+        
+    res = await async_call_llm(
+        messages, config, json_mode=True,
+        description=f"Analyzing chunk {i}/{total}",
+        response_model=AnalysisResult
+    )
+
+    # Save cache
+    try:
+        cache_path.write_text(json.dumps(res.model_dump(), default=str), encoding="utf-8")
+    except Exception as ex:
+        console.print(f"  [dim]⚠ Cache write failed for chunk {i}: {ex}[/dim]")
+        
+    return res
+
 def _analyze_multi_chunk(chunks, commit_log: str, config: ReleaseWaveConfig) -> AnalysisResult:
     """Analyze multiple chunks and merge results hierarchically to avoid token bottlenecks."""
-    chunk_results: list[AnalysisResult] = []
-
-    for i, chunk in enumerate(chunks, 1):
-        console.print(f"  [dim]Processing chunk {i}/{len(chunks)}...[/dim]")
-        diff_content = format_chunk_for_llm(chunk)
-
-        messages = build_analysis_prompt(
-            diff_content=diff_content,
-            commit_log=commit_log,  # Full commit log passed to every chunk to provide context
-            project_context=config.project_context,
-            custom_prompt=config.custom_prompt,
-        )
-
-        with Status(
-            f"[bold cyan]Analyzing chunk {i}/{len(chunks)}...",
-            console=console,
-        ):
-            res = call_llm(
-                messages, config, json_mode=True,
-                description=f"Analyzing chunk {i}/{len(chunks)}",
-                response_model=AnalysisResult
-            )
-            chunk_results.append(res)
+    
+    async def run_all_chunks():
+        tasks = []
+        for i, chunk in enumerate(chunks, 1):
+            tasks.append(_process_chunk_async(i, len(chunks), chunk, commit_log, config))
+        return await asyncio.gather(*tasks)
+    
+    with Status(f"[bold cyan]Analyzing {len(chunks)} chunks concurrently...", console=console):
+        chunk_results = asyncio.run(run_all_chunks())
 
     # Hierarchical Merge: merge chunks in groups of 3
     console.print("  [dim]Merging chunk analyses...[/dim]")

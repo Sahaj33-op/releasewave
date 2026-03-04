@@ -225,7 +225,11 @@ def get_file_diffs(
             continue
 
         # Get the actual diff content for this file
-        diff_content = _get_file_diff(repo_path, ref_from, ref_to, path)
+        # Pass padded max size to prevent large files from killing the subprocess
+        diff_content = _get_file_diff(
+            repo_path, ref_from, ref_to, path, 
+            max_size=(config.filters.max_file_size * 2) + 1024
+        )
         if diff_content is None:
             diff_content = ""
 
@@ -325,18 +329,26 @@ def _is_binary_file(repo_path: Path, ref: str, path: str) -> bool:
     return Path(path).suffix.lower() in binary_extensions
 
 
-def _get_file_diff(repo_path: Path, ref_from: str, ref_to: str, path: str) -> str:
-    """Get the unified diff for a single file."""
+def _get_file_diff(repo_path: Path, ref_from: str, ref_to: str, path: str, max_size: int = 2000000) -> str:
+    """Get the unified diff for a single file, buffering to prevent OOM."""
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             ["git", "diff", ref_from, ref_to, "--", path],
             cwd=str(repo_path),
-            capture_output=True,
-            check=True,
-            **_SUBPROCESS_KWARGS,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
-        return result.stdout or ""
-    except (subprocess.CalledProcessError, UnicodeDecodeError):
+        
+        # Read up to max_size bytes to prevent OOM
+        stdout_data = proc.stdout.read(max_size)
+        
+        proc.stdout.close()
+        proc.stderr.close()
+        proc.terminate()
+        proc.wait(timeout=2)
+        
+        return stdout_data.decode("utf-8", errors="replace")
+    except Exception:
         return ""
 
 

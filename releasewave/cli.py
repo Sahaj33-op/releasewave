@@ -210,7 +210,53 @@ def generate(
 
     # ── Extract diffs ──
     console.print("\n[bold]📂 Extracting diffs...[/bold]")
-    diffs = get_file_diffs(repo_root, sha_from, sha_to, config)
+    all_diffs = get_file_diffs(repo_root, sha_from, sha_to, config)
+    
+    if mono.is_monorepo:
+        # Process each package
+        for pkg in mono.packages:
+            # Assumes pkg.path uses forward slashes (standardized relative paths)
+            pkg_diffs = [d for d in all_diffs if d.path.startswith(pkg.path + "/")]
+            if not pkg_diffs:
+                continue
+            
+            console.print(f"\n[bold magenta]📦 Processing package: {pkg.name}[/bold magenta]")
+            _process_target(
+                commits=commits, diffs=pkg_diffs, config=config,
+                display_from=display_from, display_to=display_to,
+                json_export=json_export, no_stdout=no_stdout, repo_root=repo_root,
+                out_subdir=pkg.path
+            )
+            
+        # Process root/global changes not belonging to any package
+        root_diffs = [
+            d for d in all_diffs 
+            if not any(d.path.startswith(pkg.path + "/") for pkg in mono.packages)
+        ]
+        if root_diffs:
+            console.print(f"\n[bold magenta]🌍 Processing root/global changes[/bold magenta]")
+            _process_target(
+                commits=commits, diffs=root_diffs, config=config,
+                display_from=display_from, display_to=display_to,
+                json_export=json_export, no_stdout=no_stdout, repo_root=repo_root,
+                out_subdir=None
+            )
+    else:
+        _process_target(
+            commits=commits, diffs=all_diffs, config=config,
+            display_from=display_from, display_to=display_to,
+            json_export=json_export, no_stdout=no_stdout, repo_root=repo_root,
+            out_subdir=None
+        )
+
+    console.print(
+        f"\n[bold green]✓ Done![/bold green] "
+        f"Generated changelog(s) in {config.output.directory}"
+    )
+
+
+def _process_target(commits, diffs, config, display_from, display_to, json_export, no_stdout, repo_root, out_subdir):
+    """Helper to process diffs and generate output for a specific Target/Package."""
     stats = get_diff_stats(diffs)
     console.print(
         f"  {stats['total_files']} files: "
@@ -259,9 +305,16 @@ def generate(
 
     # ── Write Files ──
     console.print("\n[bold]💾 Writing files...[/bold]")
+    
+    # Adjust output path if inside a monorepo package
+    target_out_dir = config.output.directory
+    if out_subdir:
+        import os
+        target_out_dir = os.path.join(target_out_dir, out_subdir)
+
     written = write_changelogs(
         release,
-        output_dir=config.output.directory,
+        output_dir=target_out_dir,
         write_json=json_export,
     )
 
@@ -275,7 +328,7 @@ def generate(
             update_changelog_file(
                 dev_changelog.content,
                 config.output.changelog_file,
-                repo_root,
+                repo_root if not out_subdir else repo_root / out_subdir,
             )
 
     # ── Print to stdout ──
@@ -286,11 +339,6 @@ def generate(
     # ── Summary ──
     console.print()
     print_summary(release)
-
-    console.print(
-        f"\n[bold green]✓ Done![/bold green] "
-        f"Generated {len(changelogs)} changelog(s) in {config.output.directory}"
-    )
 
 
 # ── Init Command ─────────────────────────────────────────────────────────────
