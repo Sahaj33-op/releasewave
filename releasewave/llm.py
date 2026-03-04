@@ -48,7 +48,8 @@ def call_llm(
     config: ReleaseWaveConfig,
     json_mode: bool = False,
     description: str = "Processing",
-) -> str:
+    response_model: Optional[type] = None,
+) -> Any:
     """
     Make a single LLM call with retry logic and error handling.
 
@@ -57,9 +58,10 @@ def call_llm(
         config: ReleaseWave configuration
         json_mode: Whether to request JSON response format
         description: Human-readable description for status display
+        response_model: Optional Pydantic model for structured output via instructor
 
     Returns:
-        The LLM response text
+        The LLM response text or parsed Pydantic model
     """
     kwargs: dict[str, Any] = {
         "model": config.llm.model,
@@ -74,19 +76,29 @@ def call_llm(
     if config.llm.api_base:
         kwargs["api_base"] = config.llm.api_base
 
-    # Request JSON format if supported
-    if json_mode:
+    # Request JSON format if supported (and not using instructor)
+    if json_mode and not response_model:
         kwargs["response_format"] = {"type": "json_object"}
 
     last_error: Optional[Exception] = None
 
     for attempt in range(1, config.llm.max_retries + 1):
         try:
-            response = completion(**kwargs)
-            content = response.choices[0].message.content
-            if content:
-                return content.strip()
-            raise ValueError("Empty response from LLM")
+            if response_model:
+                import instructor
+                from litellm import completion as litellm_completion
+                # Use Instructor to guarantee structured Pydantic output
+                client = instructor.from_litellm(litellm_completion)
+                return client.chat.completions.create(
+                    response_model=response_model,
+                    **kwargs
+                )
+            else:
+                response = completion(**kwargs)
+                content = response.choices[0].message.content
+                if content:
+                    return content.strip()
+                raise ValueError("Empty response from LLM")
 
         except Exception as e:
             last_error = e
@@ -210,14 +222,17 @@ def _analyze_single_chunk(chunk, commit_log: str, config: ReleaseWaveConfig) -> 
     )
 
     with Status("[bold cyan]Analyzing diffs with LLM...", console=console):
-        raw = call_llm(messages, config, json_mode=True, description="Analyzing diffs")
+        analysis = call_llm(
+            messages, config, json_mode=True, 
+            description="Analyzing diffs", response_model=AnalysisResult
+        )
 
-    return parse_analysis_json(raw)
+    return analysis
 
 
 def _analyze_multi_chunk(chunks, commit_log: str, config: ReleaseWaveConfig) -> AnalysisResult:
-    """Analyze multiple chunks and merge results."""
-    chunk_results: list[str] = []
+    """Analyze multiple chunks and merge results hierarchically to avoid token bottlenecks."""
+    chunk_results: list[AnalysisResult] = []
 
     for i, chunk in enumerate(chunks, 1):
         console.print(f"  [dim]Processing chunk {i}/{len(chunks)}...[/dim]")
@@ -225,7 +240,7 @@ def _analyze_multi_chunk(chunks, commit_log: str, config: ReleaseWaveConfig) -> 
 
         messages = build_analysis_prompt(
             diff_content=diff_content,
-            commit_log=commit_log if i == 1 else "",  # Only include commits in first chunk
+            commit_log=commit_log,  # Full commit log passed to every chunk to provide context
             project_context=config.project_context,
             custom_prompt=config.custom_prompt,
         )
@@ -234,23 +249,42 @@ def _analyze_multi_chunk(chunks, commit_log: str, config: ReleaseWaveConfig) -> 
             f"[bold cyan]Analyzing chunk {i}/{len(chunks)}...",
             console=console,
         ):
-            raw = call_llm(
+            res = call_llm(
                 messages, config, json_mode=True,
                 description=f"Analyzing chunk {i}/{len(chunks)}",
+                response_model=AnalysisResult
             )
-            chunk_results.append(raw)
+            chunk_results.append(res)
 
-    # Merge all chunk results
+    # Hierarchical Merge: merge chunks in groups of 3
     console.print("  [dim]Merging chunk analyses...[/dim]")
-    merge_messages = build_merge_prompt(chunk_results)
+    
+    merged_results = chunk_results
+    while len(merged_results) > 1:
+        next_level = []
+        batch_size = 3
+        
+        for i in range(0, len(merged_results), batch_size):
+            batch = merged_results[i:i+batch_size]
+            if len(batch) == 1:
+                next_level.append(batch[0])
+                continue
+            
+            # Convert batch to JSON strings to pass into merge prompt
+            batch_strs = [json.dumps(r.model_dump(), default=str) for r in batch]
+            merge_messages = build_merge_prompt(batch_strs)
+            
+            with Status(f"[bold cyan]Merging {len(batch)} analyses...", console=console):
+                merged = call_llm(
+                    merge_messages, config, json_mode=True,
+                    description="Merging chunk analyses",
+                    response_model=AnalysisResult
+                )
+                next_level.append(merged)
+                
+        merged_results = next_level
 
-    with Status("[bold cyan]Merging analyses...", console=console):
-        merged_raw = call_llm(
-            merge_messages, config, json_mode=True,
-            description="Merging chunk analyses",
-        )
-
-    return parse_analysis_json(merged_raw)
+    return merged_results[0]
 
 
 def _analyze_commits_only(
@@ -262,9 +296,12 @@ def _analyze_commits_only(
     messages = build_fallback_prompt(commit_log, "from", "to")
 
     with Status("[bold cyan]Analyzing commits...", console=console):
-        raw = call_llm(messages, config, json_mode=True, description="Analyzing commits")
+        analysis = call_llm(
+            messages, config, json_mode=True, 
+            description="Analyzing commits", response_model=AnalysisResult
+        )
 
-    return parse_analysis_json(raw)
+    return analysis
 
 
 # ── Audience Rendering ───────────────────────────────────────────────────────

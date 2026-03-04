@@ -41,6 +41,9 @@ def resolve_ref(repo_path: Path, ref: str) -> str:
     Resolve a git ref (tag, branch, SHA) to a full SHA.
     Raises ValueError if the ref cannot be resolved.
     """
+    if str(ref).startswith("-"):
+        raise ValueError(f"Invalid git ref '{ref}'. Refs cannot start with '-'.")
+
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--verify", ref],
@@ -226,12 +229,21 @@ def get_file_diffs(
         if diff_content is None:
             diff_content = ""
 
-        # Truncate if too long
+        # Truncate if too long (line-aware)
         if len(diff_content) > config.filters.max_file_size:
-            truncated_at = config.filters.max_file_size
+            diff_lines = diff_content.split('\n')
+            allowed_lines = []
+            current_len = 0
+            for line in diff_lines:
+                # +1 for newline character
+                if current_len + len(line) + 1 > config.filters.max_file_size:
+                    break
+                allowed_lines.append(line)
+                current_len += len(line) + 1
+                
             diff_content = (
-                diff_content[:truncated_at]
-                + f"\n\n[... truncated at {config.filters.max_file_size} chars, "
+                "\n".join(allowed_lines)
+                + f"\n\n[... truncated at {current_len} chars, "
                 f"full diff is {len(diff_content)} chars ...]"
             )
 

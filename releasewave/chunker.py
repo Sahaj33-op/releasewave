@@ -16,13 +16,19 @@ def estimate_tokens(text: str) -> int:
     """
     Estimate token count for a string.
 
-    Uses a simple heuristic: ~4 chars per token for code/diffs.
-    This is intentionally conservative to avoid context window exhaustion.
-    For production precision, tiktoken can be used but adds startup latency.
+    Uses tiktoken if available, with a simple heuristic (~4 chars per token)
+    as a fallback.
     """
     if not text:
         return 0
-    return max(1, len(text) // 4)
+        
+    try:
+        import tiktoken
+        # Use standard generic encoding
+        enc = tiktoken.get_encoding("cl100k_base")
+        return len(enc.encode(text, disallowed_special=()))
+    except Exception:
+        return max(1, len(text) // 4)
 
 
 def estimate_file_tokens(file_diff: FileDiff) -> int:
