@@ -181,6 +181,16 @@ def generate(
 
     # ── Resolve refs ──
     console.print("\n[bold]📌 Resolving refs...[/bold]")
+
+    if not from_ref or not from_ref.strip():
+        console.print("[red]✗ Error: from_ref is empty.[/red]")
+        console.print(
+            "[dim]This usually happens on the first release when no previous tag exists.\n"
+            "  Tip: Specify a starting ref manually, e.g.:\n"
+            "    releasewave generate $(git rev-list --max-parents=0 HEAD) HEAD[/dim]"
+        )
+        raise typer.Exit(1)
+
     sha_from = resolve_ref(repo_root, from_ref)
     sha_to = resolve_ref(repo_root, to_ref)
 

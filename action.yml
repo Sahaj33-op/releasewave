@@ -58,7 +58,7 @@ runs:
 
     - name: Install ReleaseWave
       shell: bash
-      run: pip install releasewave
+      run: pip install "${{ github.action_path }}"
 
     - name: Set API Key
       shell: bash

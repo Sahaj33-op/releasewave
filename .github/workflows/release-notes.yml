@@ -34,10 +34,24 @@ jobs:
                   CURRENT_TAG=${{ github.event.release.tag_name }}
                   PREV_TAG=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || echo "")
                   echo "tag=${PREV_TAG}" >> $GITHUB_OUTPUT
-                  echo "Current: $CURRENT_TAG, Previous: $PREV_TAG"
+                  echo "Current: $CURRENT_TAG, Previous: ${PREV_TAG:-'(none, first release)'}"
+
+            - name: Check if changelog can be generated
+              id: can_generate
+              if: github.event_name == 'release'
+              run: |
+                  FROM_REF="${{ steps.prev_tag.outputs.tag }}"
+                  if [ -z "$FROM_REF" ]; then
+                    echo "⚠️ No previous tag found — this appears to be the first release."
+                    echo "Skipping changelog generation. Create the changelog manually."
+                    echo "skip=true" >> $GITHUB_OUTPUT
+                  else
+                    echo "skip=false" >> $GITHUB_OUTPUT
+                  fi
 
             - name: Generate Changelogs
-              uses: sahaj/releasewave@v1
+              if: ${{ github.event_name == 'workflow_dispatch' || steps.can_generate.outputs.skip != 'true' }}
+              uses: Sahaj33-op/releasewave@v1
               with:
                   from_ref: ${{ github.event.inputs.from_ref || steps.prev_tag.outputs.tag }}
                   to_ref: ${{ github.event.inputs.to_ref || github.event.release.tag_name }}
