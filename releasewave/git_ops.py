@@ -164,6 +164,11 @@ def get_commits(repo_path: Path, ref_from: str, ref_to: str) -> list[CommitInfo]
 
 def _count_files_changed(repo_path: Path, sha: str) -> int:
     """Count the number of files changed in a commit."""
+    return len(get_commit_files(repo_path, sha))
+
+
+def get_commit_files(repo_path: Path, sha: str) -> list[str]:
+    """Get the list of file paths changed in a commit."""
     try:
         result = subprocess.run(
             ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", sha],
@@ -172,9 +177,20 @@ def _count_files_changed(repo_path: Path, sha: str) -> int:
             check=True,
             **_SUBPROCESS_KWARGS,
         )
-        return len([f for f in result.stdout.strip().split("\n") if f.strip()])
+        return [f for f in result.stdout.strip().split("\n") if f.strip()]
     except subprocess.CalledProcessError:
-        return 0
+        return []
+
+
+def filter_commits_by_path(repo_path: Path, commits: list[CommitInfo], path_prefix: str) -> list[CommitInfo]:
+    """Filter commits to only those that touched files within the given path prefix."""
+    filtered = []
+    prefix = path_prefix.rstrip("/") + "/"
+    for commit in commits:
+        files = get_commit_files(repo_path, commit.sha)
+        if any(f.startswith(prefix) for f in files):
+            filtered.append(commit)
+    return filtered
 
 
 # ── Diff Extraction ──────────────────────────────────────────────────────────
@@ -336,7 +352,7 @@ def _get_file_diff(repo_path: Path, ref_from: str, ref_to: str, path: str, max_s
             ["git", "diff", ref_from, ref_to, "--", path],
             cwd=str(repo_path),
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,  # Avoid deadlock by not buffering stderr
         )
         
         # Read up to max_size bytes to prevent OOM

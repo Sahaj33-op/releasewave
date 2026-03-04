@@ -129,6 +129,10 @@ class ReleaseWaveConfig(BaseModel):
         default=None,
         description="Brief description of the project for better LLM understanding",
     )
+    repo_root: Optional[Path] = Field(
+        default=None,
+        description="Root path of the git repository",
+    )
 
 
 # ── Configuration Loading ────────────────────────────────────────────────────
@@ -193,6 +197,9 @@ def load_config(
             config.output.update_changelog = cli_overrides["update_changelog"]
         if "no_stdout" in cli_overrides:
             config.output.stdout = not cli_overrides["no_stdout"]
+
+    # Store the final resolved repo root in config for use by other modules
+    config.repo_root = repo_path
 
     return config
 

@@ -35,13 +35,12 @@ from releasewave.config import (
     load_config,
 )
 from releasewave.git_ops import (
-    detect_monorepo,
-    get_commits,
     get_diff_stats,
     get_file_diffs,
     get_ref_display_name,
     resolve_ref,
     validate_repo,
+    filter_commits_by_path,
 )
 from releasewave.llm import analyze_changes, render_changelogs
 from releasewave.models import (
@@ -221,8 +220,14 @@ def generate(
                 continue
             
             console.print(f"\n[bold magenta]📦 Processing package: {pkg.name}[/bold magenta]")
+            pkg_commits = filter_commits_by_path(repo_root, commits, pkg.path)
+            if not pkg_commits:
+                # If no commits touched this specifically but diffs exist (e.g. merge artifact),
+                # use global commits as fallback or keep empty. PRD says use actual commits.
+                pkg_commits = commits
+
             _process_target(
-                commits=commits, diffs=pkg_diffs, config=config,
+                commits=pkg_commits, diffs=pkg_diffs, config=config,
                 display_from=display_from, display_to=display_to,
                 json_export=json_export, no_stdout=no_stdout, repo_root=repo_root,
                 out_subdir=pkg.path

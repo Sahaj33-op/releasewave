@@ -46,6 +46,20 @@ console = Console(stderr=True)
 
 # ── Core LLM Call ────────────────────────────────────────────────────────────
 
+def run_async(coro):
+    """Safely run a coroutine, handling pre-existing event loops."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    
+    # If a loop is already running, we can't use asyncio.run.
+    # For CLI, we use nest_asyncio if possible, but simpler to just 
+    # run it via a loop runner if we're technically in an async context.
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        return executor.submit(asyncio.run, coro).result()
+
 def call_llm(
     messages: list[dict[str, str]],
     config: ReleaseWaveConfig,
@@ -54,7 +68,7 @@ def call_llm(
     response_model: Optional[type] = None,
 ) -> Any:
     """Wrapper to run async_call_llm synchronously."""
-    return asyncio.run(
+    return run_async(
         async_call_llm(messages, config, json_mode, description, response_model)
     )
 
@@ -233,9 +247,11 @@ def _analyze_single_chunk(chunk, commit_log: str, config: ReleaseWaveConfig) -> 
     return analysis
 
 
-def _get_cache_path(content: str) -> Path:
+def _get_cache_path(config: ReleaseWaveConfig, content: str) -> Path:
     h = hashlib.sha256(content.encode('utf-8')).hexdigest()
-    p = Path(".rwave/cache")
+    # Resolve relative to repo root to prevent caching in CWD
+    root = config.repo_root or Path.cwd()
+    p = root / ".rwave/cache"
     p.mkdir(parents=True, exist_ok=True)
     return p / f"chunk_{h}.json"
 
@@ -250,7 +266,7 @@ async def _process_chunk_async(i: int, total: int, chunk, commit_log: str, confi
     
     # Check cache
     cache_key = json.dumps(messages)
-    cache_path = _get_cache_path(cache_key)
+    cache_path = _get_cache_path(config, cache_key)
     
     if cache_path.exists():
         try:
@@ -286,7 +302,7 @@ def _analyze_multi_chunk(chunks, commit_log: str, config: ReleaseWaveConfig) -> 
         return await asyncio.gather(*tasks)
     
     with Status(f"[bold cyan]Analyzing {len(chunks)} chunks concurrently...", console=console):
-        chunk_results = asyncio.run(run_all_chunks())
+        chunk_results = run_async(run_all_chunks())
 
     # Hierarchical Merge: merge chunks in groups of 3
     console.print("  [dim]Merging chunk analyses...[/dim]")
