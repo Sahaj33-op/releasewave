@@ -226,17 +226,17 @@ Supports: npm/yarn/pnpm workspaces, Python packages, Cargo workspaces, Go module
 ## 🏗️ How It Works
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│  Git Refs    │────▶│  Diff        │────▶│  Chunker    │
-│  Resolution  │     │  Extraction  │     │  (Token     │
-│              │     │              │     │   Safety)   │
-└─────────────┘     └──────────────┘     └──────┬──────┘
+┌──────────────┐       ┌──────────────┐     ┌─────────────┐
+│  Git Refs    │────▶ │  Diff        │────▶│  Chunker    │
+│  Resolution  │       │  Extraction  │     │  (Token     │
+│              │       │              │     │   Safety)   │
+└──────────────┘       └──────────────┘     └──────┬──────┘
                                                  │
-┌─────────────┐     ┌──────────────┐     ┌──────▼──────┐
-│  3 Audience  │◀────│  LLM         │◀────│  Commit     │
-│  Changelogs  │     │  Analysis    │     │  Log +      │
-│              │     │              │     │  Diffs      │
-└─────────────┘     └──────────────┘     └─────────────┘
+┌─────────────┐     ┌──────────────┐       ┌──────▼──────┐
+│  3 Audience │◀────│  LLM         │◀──── │  Commit     │
+│  Changelogs │     │  Analysis    │       │  Log +      │
+│             │     │              │       │  Diffs      │
+└─────────────┘     └──────────────┘       └─────────────┘
 ```
 
 1. **Ref Resolution** — Validates and resolves git tags/branches/SHAs
@@ -261,7 +261,7 @@ Contributions welcome! Here's how to set up the dev environment:
 
 ```bash
 # Clone
-git clone https://github.com/sahaj/releasewave.git
+git clone https://github.com/Sahaj33-op/releasewave.git
 cd releasewave
 
 # Install in dev mode
@@ -285,8 +285,8 @@ MIT — do whatever you want with it.
 
 <div align="center">
 
-**Built with ❤️ by [Sahaj](https://github.com/sahaj)**
+**Built with ❤️ by [Sahaj](https://github.com/Sahaj33-op)**
 
-If ReleaseWave saves you time, consider [giving it a star ⭐](https://github.com/sahaj/releasewave)
+If ReleaseWave saves you time, consider [giving it a star ⭐](https://github.com/Sahaj33-op/releasewave.git)
 
 </div>
