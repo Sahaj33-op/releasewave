@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 # ── Default Configuration ─────────────────────────────────────────────────────
 
-DEFAULT_MODEL = "gemini/gemini-2.0-flash"
+DEFAULT_MODEL = "gemini/gemini-2.5-flash"
 DEFAULT_TOKEN_BUDGET = 120_000  # Max tokens per LLM call
 DEFAULT_CHUNK_SIZE = 80_000     # Max tokens per diff chunk
 DEFAULT_MAX_RETRIES = 3
@@ -205,8 +205,8 @@ def generate_example_config() -> str:
 # LLM Settings
 llm:
   # Model identifier (LiteLLM format)
-  # Examples: gemini/gemini-2.0-flash, gpt-4o-mini, claude-sonnet-4-20250514, ollama/llama3
-  model: gemini/gemini-2.0-flash
+  # Examples: gemini/gemini-2.5-flash, gpt-4o-mini, claude-sonnet-4-20250514, ollama/llama3
+  model: gemini/gemini-2.5-flash
 
   # Temperature for generation (0.0 = deterministic, 1.0 = creative)
   temperature: 0.3

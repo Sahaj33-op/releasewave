@@ -93,7 +93,7 @@ def generate(
     model: Optional[str] = typer.Option(
         None,
         "--model", "-m",
-        help="LLM model to use (LiteLLM format, e.g. gpt-4o-mini, gemini/gemini-2.0-flash)",
+        help="LLM model to use (LiteLLM format, e.g. gpt-4o-mini, gemini/gemini-2.5-flash)",
         rich_help_panel="LLM Options",
     ),
     # ── Output Options ──
@@ -333,7 +333,7 @@ def models() -> None:
 [bold]Recommended Models (via LiteLLM):[/bold]
 
 [bold cyan]Budget-Friendly (Default):[/bold cyan]
-  • gemini/gemini-2.0-flash      — Google Gemini 2.0 Flash (fast, cheap)
+  • gemini/gemini-2.5-flash      — Google Gemini 2.0 Flash (fast, cheap)
   • gpt-4o-mini                  — OpenAI GPT-4o Mini
 
 [bold cyan]High Quality:[/bold cyan]

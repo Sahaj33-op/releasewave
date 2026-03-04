@@ -1,60 +1,60 @@
-name: 'ReleaseWave - AI Changelog Generator'
-description: 'Generate AI-powered changelogs from git diffs. Works on any commit style.'
-author: 'Sahaj'
+name: "ReleaseWave - AI Changelog Generator"
+description: "Generate AI-powered changelogs from git diffs. Works on any commit style."
+author: "Sahaj"
 
 branding:
-  icon: 'file-text'
-  color: 'blue'
+  icon: "file-text"
+  color: "blue"
 
 inputs:
   from_ref:
-    description: 'Starting git ref (tag, branch, or SHA)'
+    description: "Starting git ref (tag, branch, or SHA)"
     required: true
   to_ref:
-    description: 'Ending git ref (default: HEAD)'
+    description: "Ending git ref (default: HEAD)"
     required: false
-    default: 'HEAD'
+    default: "HEAD"
   model:
-    description: 'LLM model to use (LiteLLM format)'
+    description: "LLM model to use (LiteLLM format)"
     required: false
-    default: 'gemini/gemini-2.0-flash'
+    default: "gemini/gemini-2.5-flash"
   audiences:
-    description: 'Comma-separated audience types: developer,user,tweet'
+    description: "Comma-separated audience types: developer,user,tweet"
     required: false
-    default: 'developer,user,tweet'
+    default: "developer,user,tweet"
   output_dir:
-    description: 'Output directory for changelog files'
+    description: "Output directory for changelog files"
     required: false
-    default: '.'
+    default: "."
   update_changelog:
-    description: 'Prepend to existing CHANGELOG.md'
+    description: "Prepend to existing CHANGELOG.md"
     required: false
-    default: 'false'
+    default: "false"
   api_key:
-    description: 'LLM API key (use GitHub secrets!)'
+    description: "LLM API key (use GitHub secrets!)"
     required: false
 
 outputs:
   developer_changelog:
-    description: 'Path to the developer changelog file'
+    description: "Path to the developer changelog file"
     value: ${{ steps.generate.outputs.developer_changelog }}
   user_changelog:
-    description: 'Path to the user release notes file'
+    description: "Path to the user release notes file"
     value: ${{ steps.generate.outputs.user_changelog }}
   tweet:
-    description: 'Path to the tweet announcement file'
+    description: "Path to the tweet announcement file"
     value: ${{ steps.generate.outputs.tweet }}
   changes_count:
-    description: 'Number of changes detected'
+    description: "Number of changes detected"
     value: ${{ steps.generate.outputs.changes_count }}
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: "3.12"
 
     - name: Install ReleaseWave
       shell: bash

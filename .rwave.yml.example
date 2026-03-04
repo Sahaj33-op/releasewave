@@ -5,8 +5,8 @@
 # LLM Settings
 llm:
   # Model identifier (LiteLLM format)
-  # Examples: gemini/gemini-2.0-flash, gpt-4o-mini, claude-sonnet-4-20250514, ollama/llama3
-  model: gemini/gemini-2.0-flash
+  # Examples: gemini/gemini-2.5-flash, gpt-4o-mini, claude-sonnet-4-20250514, ollama/llama3
+  model: gemini/gemini-2.5-flash
 
   # Temperature for generation (0.0 = deterministic, 1.0 = creative)
   temperature: 0.3

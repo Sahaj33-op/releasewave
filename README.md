@@ -60,41 +60,12 @@ merge branch 'main' of github.com/...
 
 ## 📋 Three Outputs, One Command
 
-ReleaseWave generates **three distinct changelogs** per run:
+ReleaseWave generates **three distinct changelogs** per run.
+You can view the actual output files generated for this repository in the [`examples/`](examples) directory:
 
-### 🔧 Developer Changelog
-
-Technical, precise, with file paths and commit refs:
-
-```markdown
-## ✨ Features
-- **Add WebSocket support for real-time updates** — New `ws_handler.py` 
-  implements bidirectional communication via `websockets` library. 
-  Affected: `src/ws_handler.py`, `src/app.py` (abc123d)
-
-## 🐛 Bug Fixes  
-- **Fix race condition in connection pooling** — Mutex lock added to 
-  `pool.acquire()` preventing double-allocation under load. (def456a)
-```
-
-### 📋 User Release Notes
-
-Plain English, impact-focused, no jargon:
-
-```markdown
-## 🎯 Highlights
-- **Real-time updates!** Your dashboard now updates instantly — 
-  no more refreshing the page.
-- **Faster under heavy load** — We fixed an issue that could cause 
-  slowdowns when many users connected simultaneously.
-```
-
-### 🐦 Tweet Announcement
-
-```
-🌊 v1.1.0 is here! Real-time WebSocket updates, faster connection pooling, 
-and 3 new API endpoints. Upgrade now for instant dashboard updates ⚡
-```
+- 🔧 [**CHANGELOG-developer.md**](examples/CHANGELOG-developer.md) — Technical, precise, with file paths and commit refs.
+- 📋 [**RELEASE-NOTES.md**](examples/RELEASE-NOTES.md) — Plain English, impact-focused, no jargon, made for users.
+- 🐦 [**TWEET.txt**](examples/TWEET.txt) — Tweet-sized announcement with highlights.
 
 ## 🚀 GitHub Action
 
@@ -177,7 +148,7 @@ releasewave init
 ```yaml
 # .rwave.yml
 llm:
-  model: gemini/gemini-2.0-flash    # Any LiteLLM-supported model
+  model: gemini/gemini-2.5-flash    # Any LiteLLM-supported model
   temperature: 0.3
   max_retries: 3
 
@@ -210,7 +181,7 @@ ReleaseWave supports **any model** via [LiteLLM](https://docs.litellm.ai/):
 
 | Model | Provider | Cost | Quality |
 |---|---|---|---|
-| `gemini/gemini-2.0-flash` | Google | 💚 Very cheap | ⭐⭐⭐⭐ |
+| `gemini/gemini-2.5-flash` | Google | 💚 Very cheap | ⭐⭐⭐⭐ |
 | `gpt-4o-mini` | OpenAI | 💚 Cheap | ⭐⭐⭐⭐ |
 | `gpt-4o` | OpenAI | 💛 Moderate | ⭐⭐⭐⭐⭐ |
 | `claude-sonnet-4-20250514` | Anthropic | 💛 Moderate | ⭐⭐⭐⭐⭐ |

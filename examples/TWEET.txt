@@ -1,0 +1,1 @@
+🌊 ReleaseWave v1.1.0 drops! AI analyzes your actual code diffs to create meaningful changelogs—no more commit message dependency. Generate dev, user, and tweet outputs in one command! GitHub Action integration included. Upgrade your release workflow now!

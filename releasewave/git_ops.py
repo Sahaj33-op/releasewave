@@ -14,6 +14,13 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+# Common kwargs for all subprocess.run calls to handle Windows encoding
+_SUBPROCESS_KWARGS = {
+    "text": True,
+    "encoding": "utf-8",
+    "errors": "replace",
+}
+
 from rich.console import Console
 
 from releasewave.config import ReleaseWaveConfig
@@ -39,8 +46,8 @@ def resolve_ref(repo_path: Path, ref: str) -> str:
             ["git", "rev-parse", "--verify", ref],
             cwd=str(repo_path),
             capture_output=True,
-            text=True,
             check=True,
+            **_SUBPROCESS_KWARGS,
         )
         return result.stdout.strip()
     except subprocess.CalledProcessError:
@@ -58,8 +65,8 @@ def validate_repo(repo_path: Path) -> Path:
             ["git", "rev-parse", "--show-toplevel"],
             cwd=str(repo_path),
             capture_output=True,
-            text=True,
             check=True,
+            **_SUBPROCESS_KWARGS,
         )
         return Path(result.stdout.strip())
     except subprocess.CalledProcessError:
@@ -77,8 +84,8 @@ def get_ref_display_name(repo_path: Path, sha: str) -> str:
             ["git", "describe", "--tags", "--exact-match", sha],
             cwd=str(repo_path),
             capture_output=True,
-            text=True,
             check=True,
+            **_SUBPROCESS_KWARGS,
         )
         return result.stdout.strip()
     except subprocess.CalledProcessError:
@@ -117,8 +124,8 @@ def get_commits(repo_path: Path, ref_from: str, ref_to: str) -> list[CommitInfo]
             ],
             cwd=str(repo_path),
             capture_output=True,
-            text=True,
             check=True,
+            **_SUBPROCESS_KWARGS,
         )
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Failed to extract git log: {e.stderr}")
@@ -159,8 +166,8 @@ def _count_files_changed(repo_path: Path, sha: str) -> int:
             ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", sha],
             cwd=str(repo_path),
             capture_output=True,
-            text=True,
             check=True,
+            **_SUBPROCESS_KWARGS,
         )
         return len([f for f in result.stdout.strip().split("\n") if f.strip()])
     except subprocess.CalledProcessError:
@@ -185,8 +192,8 @@ def get_file_diffs(
             ["git", "diff", "--name-status", "--diff-filter=ACDMRT", ref_from, ref_to],
             cwd=str(repo_path),
             capture_output=True,
-            text=True,
             check=True,
+            **_SUBPROCESS_KWARGS,
         )
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Failed to extract git diff: {e.stderr}")
@@ -216,6 +223,8 @@ def get_file_diffs(
 
         # Get the actual diff content for this file
         diff_content = _get_file_diff(repo_path, ref_from, ref_to, path)
+        if diff_content is None:
+            diff_content = ""
 
         # Truncate if too long
         if len(diff_content) > config.filters.max_file_size:
@@ -284,7 +293,7 @@ def _is_binary_file(repo_path: Path, ref: str, path: str) -> bool:
             ["git", "diff", "--numstat", f"{ref}~1", ref, "--", path],
             cwd=str(repo_path),
             capture_output=True,
-            text=True,
+            **_SUBPROCESS_KWARGS,
         )
         # Binary files show as "-\t-\t<path>" in numstat
         if result.stdout.strip().startswith("-\t-"):
@@ -311,11 +320,11 @@ def _get_file_diff(repo_path: Path, ref_from: str, ref_to: str, path: str) -> st
             ["git", "diff", ref_from, ref_to, "--", path],
             cwd=str(repo_path),
             capture_output=True,
-            text=True,
             check=True,
+            **_SUBPROCESS_KWARGS,
         )
-        return result.stdout
-    except subprocess.CalledProcessError:
+        return result.stdout or ""
+    except (subprocess.CalledProcessError, UnicodeDecodeError):
         return ""
 
 
