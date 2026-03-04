@@ -104,8 +104,17 @@ async def async_call_llm(
         try:
             if response_model:
                 import instructor
+                
+                # Determine best parsing mode based on model capabilities
+                model_name = config.llm.model.lower()
+                # Models that often struggle with or lack native tool_calls
+                if any(x in model_name for x in ["ollama", "zhipu", "glm", "mistral"]):
+                    mode = instructor.Mode.MD_JSON
+                else:
+                    mode = instructor.Mode.TOOL_CALL
+
                 # Use Instructor to guarantee structured Pydantic output
-                client = instructor.from_litellm(acompletion)
+                client = instructor.from_litellm(acompletion, mode=mode)
                 return await client.chat.completions.create(
                     response_model=response_model,
                     **kwargs
