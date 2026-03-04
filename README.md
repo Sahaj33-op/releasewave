@@ -9,7 +9,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/releasewave?color=blue&label=PyPI)](https://pypi.org/project/releasewave/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![GitHub stars](https://img.shields.io/github/stars/sahaj/releasewave?style=social)](https://github.com/sahaj/releasewave)
+[![GitHub stars](https://img.shields.io/github/stars/sahaj33-op/releasewave?style=social)](https://github.com/sahaj33-op/releasewave)
 
 [Quick Start](#-quick-start) · [Why ReleaseWave?](#-why-releasewave) · [GitHub Action](#-github-action) · [Configuration](#-configuration) · [Models](#-models)
 
