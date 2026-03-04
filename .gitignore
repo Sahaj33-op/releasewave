@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.pytype/
+
+# Distribution
+*.tar.gz
+*.whl
+
+# Output files (generated changelogs)
+CHANGELOG-developer.md
+RELEASE-NOTES.md
+TWEET.txt
+releasewave-output.json
+
+# Config (user-specific, not the example)
+# .rwave.yml  # Uncomment if you don't want to track config

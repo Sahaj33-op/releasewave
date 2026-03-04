@@ -1,0 +1,86 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "releasewave"
+version = "1.0.0"
+description = "AI-powered changelog generator that reads actual code diffs and works on messy commits"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Sahaj", email = "sahaj@releasewave.dev" },
+]
+keywords = [
+    "changelog",
+    "release-notes",
+    "git",
+    "ai",
+    "llm",
+    "diff",
+    "developer-tools",
+    "cli",
+    "devops",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+dependencies = [
+    "typer[all]>=0.9.0",
+    "litellm>=1.30.0",
+    "gitpython>=3.1.40",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "rich>=13.0.0",
+    "tiktoken>=0.5.0",
+    "jinja2>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/sahaj/releasewave"
+Documentation = "https://github.com/sahaj/releasewave#readme"
+Repository = "https://github.com/sahaj/releasewave"
+Issues = "https://github.com/sahaj/releasewave/issues"
+Changelog = "https://github.com/sahaj/releasewave/blob/main/CHANGELOG.md"
+
+[project.scripts]
+releasewave = "releasewave.cli:app"
+rwave = "releasewave.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["releasewave"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
