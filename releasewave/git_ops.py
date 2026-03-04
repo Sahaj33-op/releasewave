@@ -100,9 +100,9 @@ def get_ref_display_name(repo_path: Path, sha: str) -> str:
 
 # ── Commit Log Extraction ────────────────────────────────────────────────────
 
-def get_commits(repo_path: Path, ref_from: str, ref_to: str) -> list[CommitInfo]:
+def get_commits(repo_path: Path, ref_from: str, ref_to: str, path: Optional[str] = None) -> list[CommitInfo]:
     """
-    Extract all commits between two refs.
+    Extract all commits between two refs, optionally filtered by file path.
     Uses git log with a structured format for reliable parsing.
     """
     separator = "---RWAVE_COMMIT_SEP---"
@@ -118,13 +118,17 @@ def get_commits(repo_path: Path, ref_from: str, ref_to: str) -> list[CommitInfo]
         "%aI",          # Author date ISO
     ]) + separator
 
+    cmd = [
+        "git", "log",
+        f"--format={log_format}",
+        f"{ref_from}..{ref_to}",
+    ]
+    if path:
+        cmd.extend(["--", path])
+
     try:
         result = subprocess.run(
-            [
-                "git", "log",
-                f"--format={log_format}",
-                f"{ref_from}..{ref_to}",
-            ],
+            cmd,
             cwd=str(repo_path),
             capture_output=True,
             check=True,

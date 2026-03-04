@@ -132,6 +132,7 @@ class ReleaseWaveConfig(BaseModel):
     repo_root: Optional[Path] = Field(
         default=None,
         description="Root path of the git repository",
+        exclude=True,
     )
 
 

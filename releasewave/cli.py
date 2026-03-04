@@ -35,12 +35,12 @@ from releasewave.config import (
     load_config,
 )
 from releasewave.git_ops import (
+    get_commits,
     get_diff_stats,
     get_file_diffs,
     get_ref_display_name,
     resolve_ref,
     validate_repo,
-    filter_commits_by_path,
 )
 from releasewave.llm import analyze_changes, render_changelogs
 from releasewave.models import (
@@ -220,10 +220,9 @@ def generate(
                 continue
             
             console.print(f"\n[bold magenta]📦 Processing package: {pkg.name}[/bold magenta]")
-            pkg_commits = filter_commits_by_path(repo_root, commits, pkg.path)
+            pkg_commits = get_commits(repo_root, sha_from, sha_to, path=pkg.path)
             if not pkg_commits:
-                # If no commits touched this specifically but diffs exist (e.g. merge artifact),
-                # use global commits as fallback or keep empty. PRD says use actual commits.
+                # Fallback to global commits if no package-specific commits found
                 pkg_commits = commits
 
             _process_target(
@@ -312,14 +311,13 @@ def _process_target(commits, diffs, config, display_from, display_to, json_expor
     console.print("\n[bold]💾 Writing files...[/bold]")
     
     # Adjust output path if inside a monorepo package
-    target_out_dir = config.output.directory
+    target_out_dir = Path(config.output.directory)
     if out_subdir:
-        import os
-        target_out_dir = os.path.join(target_out_dir, out_subdir)
+        target_out_dir = target_out_dir / out_subdir
 
     written = write_changelogs(
         release,
-        output_dir=target_out_dir,
+        output_dir=str(target_out_dir),
         write_json=json_export,
     )
 
