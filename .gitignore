@@ -4,25 +4,29 @@ __pycache__/
 *$py.class
 *.so
 *.egg-info/
-dist/
-build/
-eggs/
 *.egg
 .eggs/
 
-# Virtual environments
+# Build & Distribution
+dist/
+build/
+*.tar.gz
+*.whl
+
+# Virtual Environments
 .venv/
 venv/
 env/
 ENV/
 
-# IDE
+# IDE & Editor
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 .DS_Store
+Thumbs.db
 
 # Testing
 .pytest_cache/
@@ -31,19 +35,19 @@ htmlcov/
 .tox/
 .nox/
 
-# Type checking
+# Type Checking
 .mypy_cache/
 .pytype/
 
-# Distribution
-*.tar.gz
-*.whl
-
-# Output files (generated changelogs)
+# ReleaseWave Generated Output
 CHANGELOG-developer.md
 RELEASE-NOTES.md
 TWEET.txt
 releasewave-output.json
 
-# Config (user-specific, not the example)
-# .rwave.yml  # Uncomment if you don't want to track config
+# ReleaseWave Cache
+.rwave/
+
+# Scratch / Dev Artifacts
+testrepo/
+prd.md

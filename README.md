@@ -86,7 +86,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: sahaj/releasewave@v1
+      - uses: Sahaj33-op/releasewave@v1
         with:
           from_ref: ${{ github.event.release.previous_tag }}
           to_ref: ${{ github.event.release.tag_name }}

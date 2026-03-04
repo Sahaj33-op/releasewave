@@ -60,11 +60,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sahaj/releasewave"
-Documentation = "https://github.com/sahaj/releasewave#readme"
-Repository = "https://github.com/sahaj/releasewave"
-Issues = "https://github.com/sahaj/releasewave/issues"
-Changelog = "https://github.com/sahaj/releasewave/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Sahaj33-op/releasewave"
+Documentation = "https://github.com/Sahaj33-op/releasewave#readme"
+Repository = "https://github.com/Sahaj33-op/releasewave"
+Issues = "https://github.com/Sahaj33-op/releasewave/issues"
+Changelog = "https://github.com/Sahaj33-op/releasewave/blob/main/CHANGELOG.md"
 
 [project.scripts]
 releasewave = "releasewave.cli:app"
