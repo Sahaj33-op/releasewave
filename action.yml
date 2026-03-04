@@ -1,0 +1,92 @@
+name: 'ReleaseWave - AI Changelog Generator'
+description: 'Generate AI-powered changelogs from git diffs. Works on any commit style.'
+author: 'Sahaj'
+
+branding:
+  icon: 'file-text'
+  color: 'blue'
+
+inputs:
+  from_ref:
+    description: 'Starting git ref (tag, branch, or SHA)'
+    required: true
+  to_ref:
+    description: 'Ending git ref (default: HEAD)'
+    required: false
+    default: 'HEAD'
+  model:
+    description: 'LLM model to use (LiteLLM format)'
+    required: false
+    default: 'gemini/gemini-2.0-flash'
+  audiences:
+    description: 'Comma-separated audience types: developer,user,tweet'
+    required: false
+    default: 'developer,user,tweet'
+  output_dir:
+    description: 'Output directory for changelog files'
+    required: false
+    default: '.'
+  update_changelog:
+    description: 'Prepend to existing CHANGELOG.md'
+    required: false
+    default: 'false'
+  api_key:
+    description: 'LLM API key (use GitHub secrets!)'
+    required: false
+
+outputs:
+  developer_changelog:
+    description: 'Path to the developer changelog file'
+    value: ${{ steps.generate.outputs.developer_changelog }}
+  user_changelog:
+    description: 'Path to the user release notes file'
+    value: ${{ steps.generate.outputs.user_changelog }}
+  tweet:
+    description: 'Path to the tweet announcement file'
+    value: ${{ steps.generate.outputs.tweet }}
+  changes_count:
+    description: 'Number of changes detected'
+    value: ${{ steps.generate.outputs.changes_count }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install ReleaseWave
+      shell: bash
+      run: pip install releasewave
+
+    - name: Set API Key
+      shell: bash
+      if: ${{ inputs.api_key != '' }}
+      run: |
+        echo "RWAVE_API_KEY=${{ inputs.api_key }}" >> $GITHUB_ENV
+
+    - name: Generate Changelogs
+      id: generate
+      shell: bash
+      run: |
+        releasewave generate \
+          ${{ inputs.from_ref }} \
+          ${{ inputs.to_ref }} \
+          --model "${{ inputs.model }}" \
+          --audiences "${{ inputs.audiences }}" \
+          --output "${{ inputs.output_dir }}" \
+          ${{ inputs.update_changelog == 'true' && '--update-changelog' || '' }} \
+          --quiet \
+          --json
+
+        # Set outputs
+        echo "developer_changelog=${{ inputs.output_dir }}/CHANGELOG-developer.md" >> $GITHUB_OUTPUT
+        echo "user_changelog=${{ inputs.output_dir }}/RELEASE-NOTES.md" >> $GITHUB_OUTPUT
+        echo "tweet=${{ inputs.output_dir }}/TWEET.txt" >> $GITHUB_OUTPUT
+
+        # Count changes from JSON output
+        if [ -f "${{ inputs.output_dir }}/releasewave-output.json" ]; then
+          CHANGES=$(python -c "import json; d=json.load(open('${{ inputs.output_dir }}/releasewave-output.json')); print(len(d.get('analysis',{}).get('changes',[])))")
+          echo "changes_count=$CHANGES" >> $GITHUB_OUTPUT
+        fi

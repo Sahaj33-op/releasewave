@@ -1,0 +1,74 @@
+# ReleaseWave Configuration
+# Place this file as .rwave.yml in your repository root.
+# All settings are optional — ReleaseWave works with zero config!
+
+# LLM Settings
+llm:
+  # Model identifier (LiteLLM format)
+  # Examples: gemini/gemini-2.0-flash, gpt-4o-mini, claude-sonnet-4-20250514, ollama/llama3
+  model: gemini/gemini-2.0-flash
+
+  # Temperature for generation (0.0 = deterministic, 1.0 = creative)
+  temperature: 0.3
+
+  # Max retries on API failure
+  max_retries: 3
+
+  # Token budget per LLM call
+  token_budget: 120000
+
+  # Timeout in seconds
+  timeout: 120
+
+# Output Settings
+output:
+  # Directory for generated changelog files
+  directory: "."
+
+  # Audience types to generate
+  audiences:
+    - developer   # Technical changelog with file paths and code details
+    - user        # User-facing release notes in plain English
+    - tweet       # Tweet-sized announcement (~280 chars)
+
+  # Output format: markdown, json, text
+  format: markdown
+
+  # Prepend to existing CHANGELOG.md
+  update_changelog: false
+
+  # Print to stdout
+  stdout: true
+
+# Monorepo Detection
+monorepo:
+  enabled: true
+  packages_dirs:
+    - packages
+    - apps
+    - libs
+    - modules
+    - services
+
+# Diff Filters — skip noisy auto-generated files
+filters:
+  exclude_patterns:
+    - "*.lock"
+    - "*.min.js"
+    - "*.min.css"
+    - "package-lock.json"
+    - "yarn.lock"
+    - "pnpm-lock.yaml"
+    - "node_modules/*"
+    - "dist/*"
+    - "build/*"
+    - "__pycache__/*"
+
+  # Max characters per file diff (larger diffs get truncated)
+  max_file_size: 50000
+
+# Optional: Brief project description for better LLM understanding
+# project_context: "A React web app with a Python backend API"
+
+# Optional: Custom instruction appended to the analysis prompt
+# custom_prompt: "Focus especially on API changes and database migrations"

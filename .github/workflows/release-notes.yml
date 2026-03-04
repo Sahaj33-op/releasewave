@@ -1,0 +1,61 @@
+# Example GitHub Actions workflow for ReleaseWave
+# Add this to your repo as .github/workflows/release-notes.yml
+
+name: Generate Release Notes
+
+on:
+    release:
+        types: [published]
+    workflow_dispatch:
+        inputs:
+            from_ref:
+                description: "From ref (tag/branch/SHA)"
+                required: true
+            to_ref:
+                description: "To ref (default: HEAD)"
+                required: false
+                default: "HEAD"
+
+permissions:
+    contents: write
+
+jobs:
+    generate-changelog:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # Full history needed for diff
+
+            - name: Get previous tag
+              id: prev_tag
+              if: github.event_name == 'release'
+              run: |
+                  CURRENT_TAG=${{ github.event.release.tag_name }}
+                  PREV_TAG=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || echo "")
+                  echo "tag=${PREV_TAG}" >> $GITHUB_OUTPUT
+                  echo "Current: $CURRENT_TAG, Previous: $PREV_TAG"
+
+            - name: Generate Changelogs
+              uses: sahaj/releasewave@v1
+              with:
+                  from_ref: ${{ github.event.inputs.from_ref || steps.prev_tag.outputs.tag }}
+                  to_ref: ${{ github.event.inputs.to_ref || github.event.release.tag_name }}
+                  api_key: ${{ secrets.GEMINI_API_KEY }}
+                  update_changelog: "true"
+
+            - name: Update release body
+              if: github.event_name == 'release'
+              uses: softprops/action-gh-release@v2
+              with:
+                  body_path: RELEASE-NOTES.md
+                  append_body: false
+
+            - name: Commit updated CHANGELOG.md
+              if: github.event_name == 'release'
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git add CHANGELOG.md
+                  git diff --staged --quiet || git commit -m "docs: update changelog for ${{ github.event.release.tag_name }}"
+                  git push
